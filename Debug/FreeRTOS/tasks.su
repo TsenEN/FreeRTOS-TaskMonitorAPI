@@ -56,6 +56,6 @@ tasks.c:4828:13:xTaskGenericNotifyFromISR	64	static,ignoring_inline_asm
 tasks.c:4957:7:vTaskNotifyGiveFromISR	48	static,ignoring_inline_asm
 tasks.c:5044:13:xTaskNotifyStateClear	24	static
 tasks.c:5081:13:prvAddCurrentTaskToDelayedList	24	static
-tasks.c:5214:6:Taskmonitor	256	static,ignoring_inline_asm
-tasks.c:5359:6:LongConvertCharArray	48	static
-tasks.c:5382:6:Uint32ConvertHex	40	static
+tasks.c:5214:6:Taskmonitor	248	static,ignoring_inline_asm
+tasks.c:5352:6:LongConvertCharArray	40	static
+tasks.c:5376:6:Uint32ConvertHex	40	static

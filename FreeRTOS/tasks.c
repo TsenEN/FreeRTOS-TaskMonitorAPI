@@ -5214,169 +5214,163 @@ when performing module tests). */
 void Taskmonitor(void){
 	char TxTaskInfo[] = "Name      |Priority(Base/actual) |pxStack      |pxTopOfStack      |State \n\r";
 	HAL_UART_Transmit(&huart2,(uint8_t *)TxTaskInfo,sizeof(TxTaskInfo),0xffff);
-	char charTxScanTaskName[configMAX_TASK_NAME_LEN+1];
-	char charTxScanTaskPriority[25];
-	char charTxScanTaskStartStack[15];
-	char charTxScanTaskTopStack[20];
-	char charState[2][10] = {"Ready \n\r","Blocked \n\r"};
+	char SacnTemp[100];
+	char ItemTemp[15];
 
-	volatile int xPriority = uxTopReadyPriority;
+	UBaseType_t xPriority;
 
 	volatile int TxScanListNumOfItem;
-	volatile StackType_t *pStartStack;
-	volatile StackType_t *pxTopStack;
+	volatile UBaseType_t ScanTaskPriority;
+	volatile StackType_t *ScanTaskStack;
 	ListItem_t *pxScanItem;
-	//ListItem_t *Item;
 	TCB_t *pxScanTCB = NULL;
-	TCB_t *pxDelayTCB = NULL;
-	ListItem_t *pxItem = NULL;
-	volatile UBaseType_t TxScanTaskPriority;
+
 	int priorityIndex = 0;
-		for(xPriority;xPriority>=0;){
+		for(xPriority = 0;xPriority<15;xPriority++){
 			if(listLIST_IS_EMPTY(&(pxReadyTasksLists[xPriority]))){
-				configASSERT( xPriority );
-				--xPriority;
 				continue;
 			}
+
 			TxScanListNumOfItem = listCURRENT_LIST_LENGTH(&(pxReadyTasksLists[xPriority]));
 			pxScanItem = listGET_ITEM_OF_HEAD_ENTRY(&(pxReadyTasksLists[xPriority]));
 			for(TxScanListNumOfItem;TxScanListNumOfItem>0;){
-				priorityIndex = 0;
 				pxScanTCB = pxScanItem->pvOwner;
-//				Item = &(pxScanTCB->xStateListItem);
-//				pxTCB = Item->pvOwner;
-				//listGET_OWNER_OF_NEXT_ENTRY( pxScanTCB,);//get pvOwner
-				memset(charTxScanTaskName,32,sizeof(charTxScanTaskName));
-				strncpy(charTxScanTaskName,pxScanTCB->pcTaskName,strlen(pxScanTCB->pcTaskName));
-				HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskName,sizeof(charTxScanTaskName),0xffff);
+				memset(SacnTemp,32,sizeof(SacnTemp));
+				memset(ItemTemp,32,sizeof(ItemTemp));
+				strncpy(SacnTemp,pxScanTCB->pcTaskName,strlen(pxScanTCB->pcTaskName));
 
-				TxScanTaskPriority = pxScanTCB->uxPriority;
-				memset(charTxScanTaskPriority,32,sizeof(charTxScanTaskPriority));
-				LongConvertCharArray(TxScanTaskPriority,&(charTxScanTaskPriority[0]),&(priorityIndex));
-				strcat(charTxScanTaskPriority,"/");
-				priorityIndex++;
-				TxScanTaskPriority = pxScanTCB->uxBasePriority;
-				LongConvertCharArray(TxScanTaskPriority,&(charTxScanTaskPriority[0]),&(priorityIndex));
-				HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskPriority,sizeof(charTxScanTaskPriority),0xffff);
 
-				pStartStack = pxScanTCB->pxStack;
-				memset(charTxScanTaskStartStack,32,sizeof(charTxScanTaskStartStack));
-				Uint32ConvertHex(pStartStack,&(charTxScanTaskStartStack[0]));
-				HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskStartStack,sizeof(charTxScanTaskStartStack),0xffff);
+				SacnTemp[15] = '\0';
 
-				pxTopStack = pxScanTCB->pxTopOfStack;
-				memset(charTxScanTaskTopStack,32,sizeof(charTxScanTaskTopStack));
-				Uint32ConvertHex(pxTopStack,&(charTxScanTaskTopStack[0]));
-//				strcat(charTxScanTaskTopStack,"\n");
-//				strcat(charTxScanTaskTopStack,"\r");
-				HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskTopStack,sizeof(charTxScanTaskTopStack),0xffff);
+				ScanTaskPriority = pxScanTCB->uxPriority;
+				LongConvertCharArray(ScanTaskPriority,ItemTemp);
+				strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+				strcat(SacnTemp,"/");
+				ScanTaskPriority = pxScanTCB->uxBasePriority;
+				LongConvertCharArray(ScanTaskPriority,ItemTemp);
+				strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+				strcat(SacnTemp,"                  ");
 
-				HAL_UART_Transmit(&huart2,(uint8_t *)charState[0],sizeof(charState[0]),0xffff);
+				ScanTaskStack = pxScanTCB->pxStack;
+				Uint32ConvertHex(ScanTaskStack,ItemTemp);
+				strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+				strcat(SacnTemp,"         ");
+
+				ScanTaskStack = pxScanTCB->pxTopOfStack;
+				Uint32ConvertHex(ScanTaskStack,ItemTemp);
+				strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+				strcat(SacnTemp,"         ");
+
+				strcat(SacnTemp,"READY \n\r");
+
+				HAL_UART_Transmit(&huart2,(uint8_t *)SacnTemp,strlen(SacnTemp),0xffff);
 				configASSERT(TxScanListNumOfItem );
 				--TxScanListNumOfItem;
 				pxScanItem = pxScanItem->pxNext;
+
 			}
-			if(xPriority == 0)
-				break;
-			configASSERT( xPriority );
-			--xPriority;
 		}
-		/* listGET_OWNER_OF_NEXT_ENTRY indexes through the list, so the tasks of
-		the	same priority get an equal share of the processor time. */
+
+
 		TxScanListNumOfItem = xDelayedTaskList1.uxNumberOfItems;
-		pxItem = listGET_ITEM_OF_HEAD_ENTRY(&(xDelayedTaskList1));
-		pxDelayTCB = pxItem->pvOwner;
+		pxScanItem = listGET_ITEM_OF_HEAD_ENTRY(&(xDelayedTaskList1));
 		for(TxScanListNumOfItem;TxScanListNumOfItem>0;){
-			priorityIndex = 0;
-			pxDelayTCB = pxItem->pvOwner;
-			memset(charTxScanTaskName,32,sizeof(charTxScanTaskName));
-			strncpy(charTxScanTaskName,pxDelayTCB->pcTaskName,strlen(pxDelayTCB->pcTaskName));
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskName,sizeof(charTxScanTaskName),0xffff);
+			pxScanTCB = pxScanItem->pvOwner;
+			memset(SacnTemp,32,sizeof(SacnTemp));
+			memset(ItemTemp,32,sizeof(ItemTemp));
+			strncpy(SacnTemp,pxScanTCB->pcTaskName,strlen(pxScanTCB->pcTaskName));
 
-			TxScanTaskPriority = pxDelayTCB->uxPriority;
-			memset(charTxScanTaskPriority,32,sizeof(charTxScanTaskPriority));
-			LongConvertCharArray(TxScanTaskPriority,&(charTxScanTaskPriority[0]),&(priorityIndex));
-			strcat(charTxScanTaskPriority,"/");
-			priorityIndex++;
-			TxScanTaskPriority = pxDelayTCB->uxBasePriority;
-			LongConvertCharArray(TxScanTaskPriority,&(charTxScanTaskPriority[0]),&(priorityIndex));
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskPriority,sizeof(charTxScanTaskPriority),0xffff);
 
-			pStartStack = pxDelayTCB->pxStack;
-			memset(charTxScanTaskStartStack,32,sizeof(charTxScanTaskStartStack));
-			Uint32ConvertHex(pStartStack,&(charTxScanTaskStartStack[0]));
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskStartStack,sizeof(charTxScanTaskStartStack),0xffff);
+			SacnTemp[15] = '\0';
 
-			pxTopStack = pxDelayTCB->pxTopOfStack;
-			memset(charTxScanTaskTopStack,32,sizeof(charTxScanTaskTopStack));
-			Uint32ConvertHex(pxTopStack,&(charTxScanTaskTopStack[0]));
-//			strcat(charTxScanTaskTopStack,"\n");
-//			strcat(charTxScanTaskTopStack,"\r");
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskTopStack,sizeof(charTxScanTaskTopStack),0xffff);
-			HAL_UART_Transmit(&huart2,(uint8_t *)charState[1],sizeof(charState[1]),0xffff);
+			ScanTaskPriority = pxScanTCB->uxPriority;
+			LongConvertCharArray(ScanTaskPriority,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"/");
+			ScanTaskPriority = pxScanTCB->uxBasePriority;
+			LongConvertCharArray(ScanTaskPriority,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"                  ");
+
+			ScanTaskStack = pxScanTCB->pxStack;
+			Uint32ConvertHex(ScanTaskStack,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"         ");
+
+			ScanTaskStack = pxScanTCB->pxTopOfStack;
+			Uint32ConvertHex(ScanTaskStack,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"         ");
+
+			strcat(SacnTemp,"BLOCKED \n\r");
+
+			HAL_UART_Transmit(&huart2,(uint8_t *)SacnTemp,strlen(SacnTemp),0xffff);
 			configASSERT(TxScanListNumOfItem );
 			--TxScanListNumOfItem;
-			pxItem = pxItem->pxNext;
+			pxScanItem = pxScanItem->pxNext;
 		}
 
 		TxScanListNumOfItem = xDelayedTaskList2.uxNumberOfItems;
-		pxItem = listGET_ITEM_OF_HEAD_ENTRY(&(xDelayedTaskList2));
-		pxDelayTCB = pxItem->pvOwner;
+		pxScanItem = listGET_ITEM_OF_HEAD_ENTRY(&(xDelayedTaskList2));
 		for(TxScanListNumOfItem;TxScanListNumOfItem>0;){
-			priorityIndex = 0;
-			pxDelayTCB = pxItem->pvOwner;
-			memset(charTxScanTaskName,32,sizeof(charTxScanTaskName));
-			strncpy(charTxScanTaskName,pxDelayTCB->pcTaskName,strlen(pxDelayTCB->pcTaskName));
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskName,sizeof(charTxScanTaskName),0xffff);
+			pxScanTCB = pxScanItem->pvOwner;
+			memset(SacnTemp,32,sizeof(SacnTemp));
+			memset(ItemTemp,32,sizeof(ItemTemp));
+			strncpy(SacnTemp,pxScanTCB->pcTaskName,strlen(pxScanTCB->pcTaskName));
 
-			TxScanTaskPriority = pxDelayTCB->uxPriority;
-			memset(charTxScanTaskPriority,32,sizeof(charTxScanTaskPriority));
-			LongConvertCharArray(TxScanTaskPriority,&(charTxScanTaskPriority[0]),&(priorityIndex));
-			strcat(charTxScanTaskPriority,"/");
-			priorityIndex++;
-			TxScanTaskPriority = pxDelayTCB->uxBasePriority;
-			LongConvertCharArray(TxScanTaskPriority,&(charTxScanTaskPriority[0]),&(priorityIndex));
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskPriority,sizeof(charTxScanTaskPriority),0xffff);
 
-			pStartStack = pxDelayTCB->pxStack;
-			memset(charTxScanTaskStartStack,32,sizeof(charTxScanTaskStartStack));
-			Uint32ConvertHex(pStartStack,&(charTxScanTaskStartStack[0]));
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskStartStack,sizeof(charTxScanTaskStartStack),0xffff);
+			SacnTemp[15] = '\0';
 
-			pxTopStack = pxDelayTCB->pxTopOfStack;
-			memset(charTxScanTaskTopStack,32,sizeof(charTxScanTaskTopStack));
-			Uint32ConvertHex(pxTopStack,&(charTxScanTaskTopStack[0]));
-//			strcat(charTxScanTaskTopStack,"\n");
-//			strcat(charTxScanTaskTopStack,"\r");
-			HAL_UART_Transmit(&huart2,(uint8_t *)charTxScanTaskTopStack,sizeof(charTxScanTaskTopStack),0xffff);
-			HAL_UART_Transmit(&huart2,(uint8_t *)charState[1],sizeof(charState[1]),0xffff);
+			ScanTaskPriority = pxScanTCB->uxPriority;
+			LongConvertCharArray(ScanTaskPriority,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"/");
+			ScanTaskPriority = pxScanTCB->uxBasePriority;
+			LongConvertCharArray(ScanTaskPriority,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"                  ");
+
+			ScanTaskStack = pxScanTCB->pxStack;
+			Uint32ConvertHex(ScanTaskStack,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"         ");
+
+			ScanTaskStack = pxScanTCB->pxTopOfStack;
+			Uint32ConvertHex(ScanTaskStack,ItemTemp);
+			strncat(SacnTemp,ItemTemp,strlen(ItemTemp));
+			strcat(SacnTemp,"         ");
+
+			strcat(SacnTemp,"BLOCKED \n\r");
+
+			HAL_UART_Transmit(&huart2,(uint8_t *)SacnTemp,strlen(SacnTemp),0xffff);
 			configASSERT(TxScanListNumOfItem );
 			--TxScanListNumOfItem;
-			pxItem = pxItem->pxNext;
+			pxScanItem = pxScanItem->pxNext;
 		}
 
 }
-void LongConvertCharArray(UBaseType_t TxScanTaskPriority, char *charTxScanTaskStack, int *index){
+void LongConvertCharArray(UBaseType_t TxScanTaskPriority, char *charTxScanTaskStack){
 		uint32_t remainder,quotient;
 		int reversal = 0,end = 0;
+		int j =  0;
 		char reversalChar;
 
 		quotient = TxScanTaskPriority;
 		if(quotient == 0)
-			charTxScanTaskStack[(*index)++] = '0' + quotient;
+			charTxScanTaskStack[j++] = '0' + quotient;
 		while (quotient != 0){
 			remainder = quotient % 10;
-			charTxScanTaskStack[(*index)++] = '0' + remainder;
+			charTxScanTaskStack[j++] = '0' + remainder;
 			quotient = quotient / 10;
 		}
-		end = (*index)-1;
+		end = j-1;
 		for(reversal;reversal<=(end/2)+1;reversal++){
 			reversalChar = charTxScanTaskStack[reversal];
 			charTxScanTaskStack[reversal] = charTxScanTaskStack[end];
 			charTxScanTaskStack[end] = reversalChar;
 			end--;
 		}
-		charTxScanTaskStack[(*index)++] = 0;
+		charTxScanTaskStack[j++] = 0;
 }
 
 void Uint32ConvertHex(volatile StackType_t pStack, char *charTxScanTaskStack){

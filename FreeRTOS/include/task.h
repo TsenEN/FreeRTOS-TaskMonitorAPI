@@ -59,7 +59,7 @@ extern "C" {
 
 UART_HandleTypeDef huart2;
 void Taskmonitor(void);
-void LongConvertCharArray(UBaseType_t ,char * ,int * );
+void LongConvertCharArray(UBaseType_t ,char * );
 void Uint32ConvertHex(volatile StackType_t ,char *);
 /**
  * task. h
